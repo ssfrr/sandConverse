@@ -1,8 +1,9 @@
 #include "ofApp.h"
 
-#define OSC_PORT 12000
+const int OSC_PORT = 12000;
 // HISTORY_GAIN of 1.0 will ignore input, 0.0 will immediately react
-#define HISTORY_GAIN 0.99
+const float HISTORY_GAIN = 0.99;
+const float ROTATE_FREQ = 0.1;
 
 //--------------------------------------------------------------
 void ofApp::setup(){
@@ -40,16 +41,19 @@ void ofApp::handleOscMsgs() {
     }
 }
 
-//--------------------------------------------------------------
-void ofApp::update(){
-    handleOscMsgs();
+void ofApp::updateDominance() {
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
         speakerDominance[i] = speakerDominance[i] * HISTORY_GAIN + speakers[i] * (1.0 - HISTORY_GAIN);
     }
 }
 
 //--------------------------------------------------------------
-void ofApp::draw(){
+void ofApp::update() {
+    handleOscMsgs();
+    updateDominance();
+}
+
+void ofApp::DrawSpeakers() {
     float rad = 200;
     float offsetX = ofGetWidth() / 2.0;
     float offsetY = ofGetHeight() / 2.0;
@@ -61,6 +65,11 @@ void ofApp::draw(){
         float ang = i / (float)NUM_SPEAKERS * 2*PI;
         ofCircle(rad * cos(ang)+offsetX, offsetY - rad*sin(ang), circSize);
     }
+}
+
+//--------------------------------------------------------------
+void ofApp::draw(){
+    DrawSpeakers();
 }
 
 //--------------------------------------------------------------

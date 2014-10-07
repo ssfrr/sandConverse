@@ -24,8 +24,11 @@ class ofApp : public ofBaseApp{
     private:
 
         void handleOscMsgs();
+        void updateDominance();
+        void DrawSpeakers();
 
         ofxOscReceiver receiver;
         int speakers[NUM_SPEAKERS];
         float speakerDominance[NUM_SPEAKERS];
+        float t;
 };
