@@ -30,5 +30,6 @@ class ofApp : public ofBaseApp{
         ofxOscReceiver receiver;
         int speakers[NUM_SPEAKERS];
         float speakerDominance[NUM_SPEAKERS];
-        float t;
+        float phase;
+        float lastTime;
 };

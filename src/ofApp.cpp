@@ -3,14 +3,16 @@
 const int OSC_PORT = 12000;
 // HISTORY_GAIN of 1.0 will ignore input, 0.0 will immediately react
 const float HISTORY_GAIN = 0.99;
-const float ROTATE_FREQ = 0.1;
+const float ROTATE_FREQ = 1;
 
 //--------------------------------------------------------------
-void ofApp::setup(){
+void ofApp::setup() {
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
         speakers[i] = false;
         speakerDominance[i] = 0.0;
     }
+    phase = 0;
+    lastTime = ofGetElapsedTimef();
     cout << "Listening on port " << OSC_PORT << endl;
     receiver.setup(OSC_PORT);
 
@@ -49,8 +51,11 @@ void ofApp::updateDominance() {
 
 //--------------------------------------------------------------
 void ofApp::update() {
+    float currentTime = ofGetElapsedTimef();
     handleOscMsgs();
     updateDominance();
+    phase += 2*PI*ROTATE_FREQ * (currentTime - lastTime);
+    lastTime = currentTime;
 }
 
 void ofApp::DrawSpeakers() {
@@ -70,6 +75,9 @@ void ofApp::DrawSpeakers() {
 //--------------------------------------------------------------
 void ofApp::draw(){
     DrawSpeakers();
+    float offsetX = ofGetWidth() / 2.0;
+    float offsetY = ofGetHeight() / 2.0;
+    ofCircle(30 * cos(phase)+offsetX, offsetY - 30*sin(phase), 10);
 }
 
 //--------------------------------------------------------------
