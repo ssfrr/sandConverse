@@ -3,6 +3,7 @@
 const int OSC_PORT = 12000;
 const float ROTATE_FREQ = 1;
 const float CENTER_WEIGHT = 0.2;
+const float MIN_WEIGHT = 0.1;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -39,7 +40,11 @@ float ofApp::getSpeakerWeight(int idx) {
             ++avgWeight;
         }
     }
-    return avgWeight / HISTORY_SIZE;
+    avgWeight /= HISTORY_SIZE;
+    if(avgWeight < MIN_WEIGHT) {
+        avgWeight = MIN_WEIGHT;
+    }
+    return avgWeight;
 }
 
 void ofApp::handleOscMsgs() {
