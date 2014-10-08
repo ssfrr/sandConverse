@@ -1,8 +1,8 @@
 #include "ofApp.h"
 
 const int OSC_PORT = 12000;
-const float ROTATE_FREQ = 1;
-const float MIN_WEIGHT = 0.1;
+const float ROTATE_FREQ = 0.3;
+const float MIN_WEIGHT = 0.05;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -108,9 +108,11 @@ ofVec2f ofApp::getPathPoint() {
     // apply the transform to a circle
     transformed.x = transform[0]*circlePoint.x + transform[1]*circlePoint.y;
     transformed.y = transform[2]*circlePoint.x + transform[3]*circlePoint.y;
+    // scale by the sqrt to bring it back into the original dimensions
+    transformed /= sqrt(transformed.length());
 
-    //return transformed + meanPos;
-    return ofVec2f(0, 0);
+    return transformed + meanPos;
+    //return ofVec2f(0, 0);
 }
 
 //--------------------------------------------------------------
