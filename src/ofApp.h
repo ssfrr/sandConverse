@@ -3,10 +3,7 @@
 #include "ofMain.h"
 #include "ofxOsc.h"
 
-// The number of actual speakers. We'll index them 1-N, and the 0th speaker is
-// a virtual speaker in the center
-#define NUM_REAL_SPEAKERS 5
-#define NUM_SPEAKERS (NUM_REAL_SPEAKERS + 1)
+#define NUM_SPEAKERS 5
 // 60fps * 30 seconds
 #define HISTORY_SIZE (60 * 5)
 

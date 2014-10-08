@@ -2,7 +2,6 @@
 
 const int OSC_PORT = 12000;
 const float ROTATE_FREQ = 1;
-const float CENTER_WEIGHT = 0.2;
 const float MIN_WEIGHT = 0.1;
 
 //--------------------------------------------------------------
@@ -14,9 +13,8 @@ void ofApp::setup() {
             speakerSpeaking[i][j] = false;
         }
     }
-    speakerPos[0] = ofVec2f(0, 0);
-    for(int i = 1; i < NUM_SPEAKERS; ++i) {
-        float ang = (i-1) / (float)(NUM_SPEAKERS-1) * 2*PI;
+    for(int i = 0; i < NUM_SPEAKERS; ++i) {
+        float ang = i / (float)NUM_SPEAKERS * 2*PI;
         speakerPos[i].x = speakerRadius * cos(ang);
         speakerPos[i].y = speakerRadius * sin(ang);
         speakerSpeakingNow[i] = false;
@@ -31,9 +29,6 @@ void ofApp::setup() {
 }
 
 float ofApp::getSpeakerWeight(int idx) {
-    if(idx == 0) {
-        return CENTER_WEIGHT;
-    }
     float avgWeight = 0;
     for(int i = 0; i < HISTORY_SIZE; ++i) {
         if(speakerSpeaking[idx][i]) {
@@ -57,22 +52,22 @@ void ofApp::handleOscMsgs() {
             continue;
         }
         int nArgs = msg.getNumArgs();
-        if(nArgs != NUM_REAL_SPEAKERS) {
-            cout << "Expected " << NUM_REAL_SPEAKERS << " args, got " << nArgs << ".\n";
+        if(nArgs != NUM_SPEAKERS) {
+            cout << "Expected " << NUM_SPEAKERS << " args, got " << nArgs << ".\n";
             continue;
         }
-        for(int i = 0; i < NUM_REAL_SPEAKERS; ++i) {
+        for(int i = 0; i < NUM_SPEAKERS; ++i) {
             if(msg.getArgType(i) != OFXOSC_TYPE_INT32) {
                 cout << "Expected Int32 for argument " << i << ", got " << msg.getArgTypeName(i) << ".\n";
                 continue;
             }
-            speakerSpeakingNow[i+1] = msg.getArgAsInt32(i);
+            speakerSpeakingNow[i] = msg.getArgAsInt32(i);
         }
     }
 }
 
 void ofApp::updateSpeakerSpeaking() {
-    for(int i = 1; i < NUM_SPEAKERS; ++i) {
+    for(int i = 0; i < NUM_SPEAKERS; ++i) {
         speakerSpeaking[i][historyIdx] = speakerSpeakingNow[i];
     }
     historyIdx = (historyIdx + 1) % HISTORY_SIZE;
