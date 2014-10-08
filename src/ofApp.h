@@ -3,7 +3,10 @@
 #include "ofMain.h"
 #include "ofxOsc.h"
 
-#define NUM_SPEAKERS 5
+// The number of actual speakers. We'll index them 1-N, and the 0th speaker is
+// a virtual speaker in the center
+#define NUM_REAL_SPEAKERS 5
+#define NUM_SPEAKERS (NUM_REAL_SPEAKERS + 1)
 
 class ofApp : public ofBaseApp{
     public:
@@ -24,12 +27,14 @@ class ofApp : public ofBaseApp{
     private:
 
         void handleOscMsgs();
-        void updateDominance();
+        void updateWeights();
         void DrawSpeakers();
+        ofVec2f getPathPoint();
 
         ofxOscReceiver receiver;
-        int speakers[NUM_SPEAKERS];
-        float speakerDominance[NUM_SPEAKERS];
+        ofVec2f speakerPos[NUM_SPEAKERS];
+        bool speakerSpeaking[NUM_SPEAKERS];
+        float speakerWeight[NUM_SPEAKERS];
         float phase;
         float lastTime;
 };

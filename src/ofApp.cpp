@@ -4,12 +4,20 @@ const int OSC_PORT = 12000;
 // HISTORY_GAIN of 1.0 will ignore input, 0.0 will immediately react
 const float HISTORY_GAIN = 0.99;
 const float ROTATE_FREQ = 1;
+const float CENTER_WEIGHT = 0.1;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-    for(int i = 0; i < NUM_SPEAKERS; ++i) {
-        speakers[i] = false;
-        speakerDominance[i] = 0.0;
+    float speakerRadius = 200;
+
+    speakerPos[0] = ofVec2f(0, 0);
+    speakerWeight[0] = CENTER_WEIGHT;
+    for(int i = 1; i < NUM_SPEAKERS; ++i) {
+        float ang = (i-1) / (float)(NUM_SPEAKERS-1) * 2*PI;
+        speakerSpeaking[i] = false;
+        speakerWeight[i] = 0.0;
+        speakerPos[i].x = speakerRadius * cos(ang);
+        speakerPos[i].y = speakerRadius * sin(ang);
     }
     phase = 0;
     lastTime = ofGetElapsedTimef();
@@ -29,55 +37,69 @@ void ofApp::handleOscMsgs() {
             continue;
         }
         int nArgs = msg.getNumArgs();
-        if(nArgs != NUM_SPEAKERS) {
-            cout << "Expected " << NUM_SPEAKERS << " args, got " << nArgs << ".\n";
+        if(nArgs != NUM_REAL_SPEAKERS) {
+            cout << "Expected " << NUM_REAL_SPEAKERS << " args, got " << nArgs << ".\n";
             continue;
         }
-        for(int i = 0; i < NUM_SPEAKERS; ++i) {
+        for(int i = 0; i < NUM_REAL_SPEAKERS; ++i) {
             if(msg.getArgType(i) != OFXOSC_TYPE_INT32) {
                 cout << "Expected Int32 for argument " << i << ", got " << msg.getArgTypeName(i) << ".\n";
                 continue;
             }
-            speakers[i] = msg.getArgAsInt32(i);
+            speakerSpeaking[i+1] = msg.getArgAsInt32(i);
         }
     }
 }
 
-void ofApp::updateDominance() {
-    for(int i = 0; i < NUM_SPEAKERS; ++i) {
-        speakerDominance[i] = speakerDominance[i] * HISTORY_GAIN + speakers[i] * (1.0 - HISTORY_GAIN);
+void ofApp::updateWeights() {
+    for(int i = 1; i < NUM_SPEAKERS; ++i) {
+        speakerWeight[i] = speakerWeight[i] * HISTORY_GAIN + speakerSpeaking[i] * (1.0 - HISTORY_GAIN);
     }
+}
+
+ofVec2f ofApp::getPathPoint() {
+    float totalWeight = 0;
+    ofVec2f meanPos = ofVec2f(0, 0);
+
+    for(int i = 0; i < NUM_SPEAKERS; ++i) {
+        totalWeight += speakerWeight[i];
+        meanPos += speakerWeight[i] * speakerPos[i];
+    }
+    meanPos /= totalWeight;
+
+    meanPos.x += 30 * cos(phase);
+    meanPos.y += 30 * sin(phase);
+
+    return meanPos;
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
     float currentTime = ofGetElapsedTimef();
     handleOscMsgs();
-    updateDominance();
+    updateWeights();
     phase += 2*PI*ROTATE_FREQ * (currentTime - lastTime);
     lastTime = currentTime;
 }
 
 void ofApp::DrawSpeakers() {
-    float rad = 200;
-    float offsetX = ofGetWidth() / 2.0;
-    float offsetY = ofGetHeight() / 2.0;
     ofSetColor(200, 200, 200);
-    ofCircle(offsetX, offsetY, 10);
 
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
-        float circSize = 30.0 * speakerDominance[i];
-        float ang = i / (float)NUM_SPEAKERS * 2*PI;
-        ofCircle(rad * cos(ang)+offsetX, offsetY - rad*sin(ang), circSize);
+        float circSize = 30.0 * speakerWeight[i];
+        ofCircle(speakerPos[i], circSize);
     }
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+    ofPushMatrix();
+    ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
+    ofScale(1, -1);
     DrawSpeakers();
-    float offsetX = ofGetWidth() / 2.0;
-    float offsetY = ofGetHeight() / 2.0;
-    ofCircle(30 * cos(phase)+offsetX, offsetY - 30*sin(phase), 10);
+    ofVec2f pathPoint = getPathPoint();
+    ofCircle(pathPoint, 10);
+    ofPopMatrix();
 }
 
 //--------------------------------------------------------------
