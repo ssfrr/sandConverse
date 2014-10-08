@@ -1,30 +1,45 @@
 #include "ofApp.h"
 
 const int OSC_PORT = 12000;
-// HISTORY_GAIN of 1.0 will ignore input, 0.0 will immediately react
-const float HISTORY_GAIN = 0.99;
 const float ROTATE_FREQ = 1;
-const float CENTER_WEIGHT = 0.1;
+const float CENTER_WEIGHT = 0.2;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
     float speakerRadius = 200;
 
+    for(int i = 0; i < NUM_SPEAKERS; ++i) {
+        for(int j = 0; i < HISTORY_SIZE; ++i) {
+            speakerSpeaking[i][j] = false;
+        }
+    }
     speakerPos[0] = ofVec2f(0, 0);
-    speakerWeight[0] = CENTER_WEIGHT;
     for(int i = 1; i < NUM_SPEAKERS; ++i) {
         float ang = (i-1) / (float)(NUM_SPEAKERS-1) * 2*PI;
-        speakerSpeaking[i] = false;
-        speakerWeight[i] = 0.0;
         speakerPos[i].x = speakerRadius * cos(ang);
         speakerPos[i].y = speakerRadius * sin(ang);
+        speakerSpeakingNow[i] = false;
     }
+    historyIdx = 0;
     phase = 0;
     lastTime = ofGetElapsedTimef();
     cout << "Listening on port " << OSC_PORT << endl;
     receiver.setup(OSC_PORT);
 
     ofBackground(20, 20, 20);
+}
+
+float ofApp::getSpeakerWeight(int idx) {
+    if(idx == 0) {
+        return CENTER_WEIGHT;
+    }
+    float avgWeight = 0;
+    for(int i = 0; i < HISTORY_SIZE; ++i) {
+        if(speakerSpeaking[idx][i]) {
+            ++avgWeight;
+        }
+    }
+    return avgWeight / HISTORY_SIZE;
 }
 
 void ofApp::handleOscMsgs() {
@@ -46,15 +61,16 @@ void ofApp::handleOscMsgs() {
                 cout << "Expected Int32 for argument " << i << ", got " << msg.getArgTypeName(i) << ".\n";
                 continue;
             }
-            speakerSpeaking[i+1] = msg.getArgAsInt32(i);
+            speakerSpeakingNow[i+1] = msg.getArgAsInt32(i);
         }
     }
 }
 
-void ofApp::updateWeights() {
+void ofApp::updateSpeakerSpeaking() {
     for(int i = 1; i < NUM_SPEAKERS; ++i) {
-        speakerWeight[i] = speakerWeight[i] * HISTORY_GAIN + speakerSpeaking[i] * (1.0 - HISTORY_GAIN);
+        speakerSpeaking[i][historyIdx] = speakerSpeakingNow[i];
     }
+    historyIdx = (historyIdx + 1) % HISTORY_SIZE;
 }
 
 ofVec2f ofApp::getPathPoint() {
@@ -62,8 +78,9 @@ ofVec2f ofApp::getPathPoint() {
     ofVec2f meanPos = ofVec2f(0, 0);
 
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
-        totalWeight += speakerWeight[i];
-        meanPos += speakerWeight[i] * speakerPos[i];
+        float weight = getSpeakerWeight(i);
+        totalWeight += weight;
+        meanPos += weight * speakerPos[i];
     }
     meanPos /= totalWeight;
 
@@ -77,7 +94,7 @@ ofVec2f ofApp::getPathPoint() {
 void ofApp::update() {
     float currentTime = ofGetElapsedTimef();
     handleOscMsgs();
-    updateWeights();
+    updateSpeakerSpeaking();
     phase += 2*PI*ROTATE_FREQ * (currentTime - lastTime);
     lastTime = currentTime;
 }
@@ -86,7 +103,7 @@ void ofApp::DrawSpeakers() {
     ofSetColor(200, 200, 200);
 
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
-        float circSize = 30.0 * speakerWeight[i];
+        float circSize = 30.0 * getSpeakerWeight(i);
         ofCircle(speakerPos[i], circSize);
     }
 }

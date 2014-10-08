@@ -7,6 +7,8 @@
 // a virtual speaker in the center
 #define NUM_REAL_SPEAKERS 5
 #define NUM_SPEAKERS (NUM_REAL_SPEAKERS + 1)
+// 60fps * 30 seconds
+#define HISTORY_SIZE (60 * 5)
 
 class ofApp : public ofBaseApp{
     public:
@@ -27,14 +29,16 @@ class ofApp : public ofBaseApp{
     private:
 
         void handleOscMsgs();
-        void updateWeights();
+        void updateSpeakerSpeaking();
         void DrawSpeakers();
         ofVec2f getPathPoint();
+        float getSpeakerWeight(int idx);
 
         ofxOscReceiver receiver;
         ofVec2f speakerPos[NUM_SPEAKERS];
-        bool speakerSpeaking[NUM_SPEAKERS];
-        float speakerWeight[NUM_SPEAKERS];
+        bool speakerSpeakingNow[NUM_SPEAKERS];
+        bool speakerSpeaking[NUM_SPEAKERS][HISTORY_SIZE];
         float phase;
         float lastTime;
+        int historyIdx;
 };
