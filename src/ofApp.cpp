@@ -75,19 +75,42 @@ void ofApp::updateSpeakerSpeaking() {
 
 ofVec2f ofApp::getPathPoint() {
     float totalWeight = 0;
-    ofVec2f meanPos = ofVec2f(0, 0);
+    float weight[NUM_SPEAKERS];
+    ofVec2f meanPos;
+    // transform is a 2x2 transformation matrix in the shape of:
+    //  0 1
+    //  2 3
+    float transform[4] = {0, 0, 0, 0};
+    ofVec2f circlePoint = ofVec2f(cos(phase), sin(phase));
+    ofVec2f transformed;
 
+    // first compute the weighted mean point, used as the center of the ellipse
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
-        float weight = getSpeakerWeight(i);
-        totalWeight += weight;
-        meanPos += weight * speakerPos[i];
+        weight[i] = getSpeakerWeight(i);
+        totalWeight += weight[i];
+        meanPos += weight[i] * speakerPos[i];
     }
     meanPos /= totalWeight;
 
-    meanPos.x += 30 * cos(phase);
-    meanPos.y += 30 * sin(phase);
+    // now get the spread transform, using the weighted covariance calculation
+    for(int i = 0; i < NUM_SPEAKERS; ++i) {
+        ofVec2f diffPos = speakerPos[i] - meanPos;
+        // compute p * p' and sum up in the top-left of the transform matrix
+        transform[0] += weight[i] * diffPos.x * diffPos.x;
+        transform[1] += weight[i] * diffPos.x * diffPos.y;
+        transform[2] += weight[i] * diffPos.x * diffPos.y;
+        transform[3] += weight[i] * diffPos.y * diffPos.y;
+    }
+    for(int i = 0; i < 4; ++i) {
+        transform[i] /= totalWeight;
+    }
 
-    return meanPos;
+    // apply the transform to a circle
+    transformed.x = transform[0]*circlePoint.x + transform[1]*circlePoint.y;
+    transformed.y = transform[2]*circlePoint.x + transform[3]*circlePoint.y;
+
+    //return transformed + meanPos;
+    return ofVec2f(0, 0);
 }
 
 //--------------------------------------------------------------
