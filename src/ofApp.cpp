@@ -102,14 +102,19 @@ ofVec2f ofApp::getPathPoint() {
         transform[3] += weight[i] * diffPos.y * diffPos.y;
     }
     for(int i = 0; i < 4; ++i) {
-        transform[i] /= totalWeight;
+        transform[i] /= sqrt(abs(transform[i]));
+        //transform[i] /= totalWeight;
     }
 
     // apply the transform to a circle
     transformed.x = transform[0]*circlePoint.x + transform[1]*circlePoint.y;
     transformed.y = transform[2]*circlePoint.x + transform[3]*circlePoint.y;
-    // scale by the sqrt to bring it back into the original dimensions
-    transformed /= sqrt(transformed.length());
+
+    ofCircle(meanPos, 5);
+    ofVec2f ax1 = ofVec2f(transform[0], transform[2]);
+    ofVec2f ax2 = ofVec2f(transform[1], transform[3]);
+    ofLine(meanPos, meanPos+ax1);
+    ofLine(meanPos, meanPos+ax2);
 
     return transformed + meanPos;
     //return ofVec2f(0, 0);
