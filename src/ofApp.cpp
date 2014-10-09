@@ -3,6 +3,7 @@
 const int OSC_PORT = 12000;
 const float ROTATE_FREQ = 0.3;
 const float MIN_WEIGHT = 0.05;
+const float ZERO_THRESH = 0.01;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -73,6 +74,40 @@ void ofApp::updateSpeakerSpeaking() {
     historyIdx = (historyIdx + 1) % HISTORY_SIZE;
 }
 
+void ofApp::makeEigs(float m[]) {
+    // assume m[1] == m[2], for a valid covariance matrix. What if they're not?
+    if(abs(m[1]/m[0]) < ZERO_THRESH && abs(m[2]/m[3]) < ZERO_THRESH) {
+        // matrix is already diagonalized
+        return;
+    }
+
+    float eigVal1, eigVal2;
+    ofVec2f eigVec1, eigVec2;
+    float left = (m[0] + m[3]) / 2;
+    float right = sqrt((m[0]+m[3])*(m[0]+m[3]) - 4*(m[0]*m[3]-m[1]*m[2]))/2;
+    eigVal1 = left - right;
+    eigVal2 = left + right;
+    if(abs(eigVal1 - eigVal2) < ZERO_THRESH) {
+        eigVec1.x = eigVal1;
+        eigVec1.y = 0;
+        eigVec2.x = 0;
+        eigVec2.y = eigVal2;
+        return;
+    }
+    eigVec1.x = eigVal1 / sqrt(1+pow((m[0]-eigVal1)/m[1], 2));
+    eigVec1.y = -(m[0]-eigVal1)/m[1] * eigVec1.x;
+    eigVec2.x = eigVal2 / sqrt(1+pow((m[0]-eigVal2)/m[1], 2));
+    eigVec2.y = -(m[0]-eigVal2)/m[1] * eigVec2.x;
+
+    m[0] = eigVec1.x;
+    m[1] = eigVec2.x;
+    m[2] = eigVec1.y;
+    m[3] = eigVec2.y;
+
+    ofDrawBitmapString("eigVal1: " + ofToString(eigVal1), 200, -200);
+    ofDrawBitmapString("eigVal2: " + ofToString(eigVal2), 200, -210);
+}
+
 ofVec2f ofApp::getPathPoint() {
     float totalWeight = 0;
     float weight[NUM_SPEAKERS];
@@ -101,6 +136,7 @@ ofVec2f ofApp::getPathPoint() {
         transform[2] += weight[i] * diffPos.x * diffPos.y;
         transform[3] += weight[i] * diffPos.y * diffPos.y;
     }
+    makeEigs(transform);
     for(int i = 0; i < 4; ++i) {
         transform[i] /= sqrt(abs(transform[i]));
         //transform[i] /= totalWeight;

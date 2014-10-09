@@ -30,6 +30,7 @@ class ofApp : public ofBaseApp{
         void DrawSpeakers();
         ofVec2f getPathPoint();
         float getSpeakerWeight(int idx);
+        void makeEigs(float m[]);
 
         ofxOscReceiver receiver;
         ofVec2f speakerPos[NUM_SPEAKERS];
