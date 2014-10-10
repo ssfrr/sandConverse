@@ -5,7 +5,7 @@
 
 #define NUM_SPEAKERS 5
 // 60fps * 30 seconds
-#define HISTORY_SIZE (60 * 5)
+#define HISTORY_SIZE (60 * 30)
 
 class ofApp : public ofBaseApp{
     public:
@@ -33,6 +33,7 @@ class ofApp : public ofBaseApp{
         void getEllipse(float m[], float *a, float *b, float *angle);
         void makeEigs(float m[]);
 
+        ofFbo ballFbo;
         ofxOscReceiver receiver;
         ofVec2f speakerPos[NUM_SPEAKERS];
         bool speakerSpeakingNow[NUM_SPEAKERS];
@@ -41,6 +42,7 @@ class ofApp : public ofBaseApp{
         float lastEllipseAngle;
         float lastBallPhase;
         float lastTime;
+        ofVec2f lastBallPos;
         ofVec2f ballPos;
         int historyIdx;
         // transform is a 2x2 transformation matrix in the shape of:

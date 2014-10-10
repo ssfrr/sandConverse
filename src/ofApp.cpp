@@ -1,7 +1,7 @@
 #include "ofApp.h"
 
 const int OSC_PORT = 12000;
-const float ROTATE_FREQ = 0.3;
+const float ROTATE_FREQ = 0.2;
 const float MIN_WEIGHT = 0.05;
 const float ZERO_THRESH = 0.01;
 
@@ -10,7 +10,12 @@ void ofApp::setup() {
     float speakerRadius = 200;
 
     lastEllipseAngle = 0;
+    lastBallPos = ofVec2f(0, 0);
     lastBallPhase = 0;
+    ballFbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
+    ballFbo.begin();
+    ofClear(0, 0, 0, 0);
+    ballFbo.end();
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
         for(int j = 0; i < HISTORY_SIZE; ++i) {
             speakerSpeaking[i][j] = false;
@@ -38,6 +43,7 @@ float ofApp::getSpeakerWeight(int idx) {
         }
     }
     avgWeight /= HISTORY_SIZE;
+    avgWeight = avgWeight * avgWeight;
     if(avgWeight < MIN_WEIGHT) {
         avgWeight = MIN_WEIGHT;
     }
@@ -206,11 +212,27 @@ void ofApp::DrawSpeakers() {
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+    ballFbo.begin();
+    ofPushMatrix();
+    ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
+    ofScale(1, -1);
+    // clear a space to actually draw it next time
+    ofSetColor(20, 20, 20, 50);
+    for(int r = 12; r >= 5; r--) {
+        ofCircle(ballPos, r);
+    }
+    ofSetColor(200, 200, 200, 255);
+    ofCircle(lastBallPos, 9);
+    lastBallPos = ballPos;
+    ballFbo.end();
+    ofPopMatrix();
+
+    ballFbo.draw(0, 0);
+
     ofPushMatrix();
     ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
     ofScale(1, -1);
     DrawSpeakers();
-    ofCircle(ballPos, 10);
 
     ofCircle(meanPos, 5);
     ofVec2f ax1 = ellipseA * ofVec2f(cos(ellipseAngle), sin(ellipseAngle));
