@@ -30,14 +30,18 @@ class ofApp : public ofBaseApp{
         void DrawSpeakers();
         void updateBallPos();
         float getSpeakerWeight(int idx);
+        void getEllipse(float m[], float *a, float *b, float *angle);
         void makeEigs(float m[]);
 
         ofxOscReceiver receiver;
         ofVec2f speakerPos[NUM_SPEAKERS];
         bool speakerSpeakingNow[NUM_SPEAKERS];
         bool speakerSpeaking[NUM_SPEAKERS][HISTORY_SIZE];
-        ofVec2f ballPos;
+        float ellipseA, ellipseB, ellipseAngle;
+        float lastEllipseAngle;
+        float lastBallPhase;
         float lastTime;
+        ofVec2f ballPos;
         int historyIdx;
         // transform is a 2x2 transformation matrix in the shape of:
         //  0 1

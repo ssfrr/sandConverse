@@ -9,8 +9,8 @@ const float ZERO_THRESH = 0.01;
 void ofApp::setup() {
     float speakerRadius = 200;
 
-    ballPos.x = 1;
-    ballPos.y = 0;
+    lastEllipseAngle = 0;
+    lastBallPhase = 0;
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
         for(int j = 0; i < HISTORY_SIZE; ++i) {
             speakerSpeaking[i][j] = false;
@@ -75,6 +75,38 @@ void ofApp::updateSpeakerSpeaking() {
     historyIdx = (historyIdx + 1) % HISTORY_SIZE;
 }
 
+void ofApp::getEllipse(float m[], float *a, float *b, float *angle) {
+    // assume m[1] == m[2], for a valid covariance matrix. What if they're not?
+    if(abs(m[1]/m[0]) < ZERO_THRESH && abs(m[2]/m[3]) < ZERO_THRESH) {
+        // matrix is already diagonalized
+        *angle = 0;
+        *a = sqrt(abs(m[0]));
+        *b = sqrt(abs(m[3]));
+        return;
+    }
+
+    float right = sqrt((m[0]+m[3])*(m[0]+m[3]) - 4*(m[0]*m[3]-m[1]*m[2]))/2;
+    float left = (m[0] + m[3]) / 2;
+    if(right < ZERO_THRESH) {
+        // ellipse is a circle
+        *a = sqrt(left);
+        *b = *a;
+        angle = 0;
+        return;
+    }
+    float eigVal1 = left - right;
+    float eigVal2 = left + right;
+    ofVec2f eigVec1, eigVec2;
+    eigVec1.x = eigVal1 / sqrt(1+pow((m[0]-eigVal1)/m[1], 2));
+    eigVec1.y = -(m[0]-eigVal1)/m[1] * eigVec1.x;
+    eigVec2.x = eigVal2 / sqrt(1+pow((m[0]-eigVal2)/m[1], 2));
+    eigVec2.y = -(m[0]-eigVal2)/m[1] * eigVec2.x;
+
+    *a = sqrt(abs(eigVal1));
+    *b = sqrt(abs(eigVal2));
+    *angle = atan2(eigVec1.y, eigVec1.x);
+}
+
 void ofApp::makeEigs(float m[]) {
     // assume m[1] == m[2], for a valid covariance matrix. What if they're not?
     if(abs(m[1]/m[0]) < ZERO_THRESH && abs(m[2]/m[3]) < ZERO_THRESH) {
@@ -137,30 +169,21 @@ void ofApp::updateBallPos() {
         transform[2] += weight[i] * diffPos.x * diffPos.y;
         transform[3] += weight[i] * diffPos.y * diffPos.y;
     }
-    makeEigs(transform);
-    // the transform matrix is orthogonal, so we can invert just by taking the
-    // transpose. Here we apply the inverse of the transform to the current
-    // ball position so we can calculate the previous phase, increment the
-    // phase, then transform back into the elliptical space
-    ofVec2f origBallPos = ofVec2f(
-            transform[0]*(ballPos.x-meanPos.x) + transform[2] * (ballPos.y-meanPos.y),
-            transform[1]*(ballPos.x-meanPos.x) + transform[3] * (ballPos.y-meanPos.y)
-            );
-    float nextPhase = atan2(origBallPos.y, origBallPos.x) + 2*PI*ROTATE_FREQ * (currentTime - lastTime);
-    if(nextPhase > 2*PI) {
+    getEllipse(transform, &ellipseA, &ellipseB, &ellipseAngle);
+    float nextPhase = lastBallPhase - (ellipseAngle - lastEllipseAngle) + 2*PI*ROTATE_FREQ * (currentTime - lastTime);
+    while(nextPhase > PI) {
         nextPhase -= 2*PI;
     }
+    while(nextPhase < -PI) {
+        nextPhase += 2*PI;
+    }
 
-    //for(int i = 0; i < 4; ++i) {
-    //    transform[i] /= sqrt(abs(transform[i]));
-    //}
+    ballPos.x = ellipseA*cos(-ellipseAngle)*cos(nextPhase) + ellipseB * sin(-ellipseAngle) * sin(nextPhase);
+    ballPos.y = -ellipseA*sin(-ellipseAngle)*cos(nextPhase) + ellipseB * cos(-ellipseAngle) * sin(nextPhase);
 
-    // apply the transform to a circle
-    ballPos = ofVec2f(
-            transform[0]*cos(nextPhase) + transform[1]*sin(nextPhase),
-            transform[2]*cos(nextPhase) + transform[3]*sin(nextPhase)
-            );
     ballPos += meanPos;
+    lastBallPhase = nextPhase;
+    lastEllipseAngle = ellipseAngle;
 
     lastTime = currentTime;
 }
@@ -190,14 +213,15 @@ void ofApp::draw(){
     ofCircle(ballPos, 10);
 
     ofCircle(meanPos, 5);
-    ofVec2f ax1 = ofVec2f(transform[0], transform[2]);
-    ofVec2f ax2 = ofVec2f(transform[1], transform[3]);
+    ofVec2f ax1 = ellipseA * ofVec2f(cos(ellipseAngle), sin(ellipseAngle));
+    ofVec2f ax2 = ellipseB * ofVec2f(cos(ellipseAngle-PI/2), sin(ellipseAngle-PI/2));
     ofLine(meanPos, meanPos+ax1);
     ofLine(meanPos, meanPos+ax2);
 
     ofDrawBitmapString("meanPos: " + ofToString(meanPos), 200, -200);
-    ofDrawBitmapString("transform: " + ofToString(transform[0]) + ", " + ofToString(transform[1]), 200, -210);
-    ofDrawBitmapString("           " + ofToString(transform[2]) + ", " + ofToString(transform[3]), 200, -220);
+    ofDrawBitmapString("a: " + ofToString(ellipseA), 200, -210);
+    ofDrawBitmapString("b: " + ofToString(ellipseB), 200, -220);
+    ofDrawBitmapString("angle: " + ofToString(ellipseAngle), 200, -230);
 
     ofPopMatrix();
 }
