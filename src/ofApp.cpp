@@ -9,6 +9,8 @@ const float ZERO_THRESH = 0.01;
 void ofApp::setup() {
     float speakerRadius = 200;
 
+    ballPos.x = 1;
+    ballPos.y = 0;
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
         for(int j = 0; i < HISTORY_SIZE; ++i) {
             speakerSpeaking[i][j] = false;
@@ -21,7 +23,6 @@ void ofApp::setup() {
         speakerSpeakingNow[i] = false;
     }
     historyIdx = 0;
-    phase = 0;
     lastTime = ofGetElapsedTimef();
     cout << "Listening on port " << OSC_PORT << endl;
     receiver.setup(OSC_PORT);
@@ -108,7 +109,8 @@ void ofApp::makeEigs(float m[]) {
     ofDrawBitmapString("eigVal2: " + ofToString(eigVal2), 200, -210);
 }
 
-ofVec2f ofApp::getPathPoint() {
+void ofApp::updateBallPos() {
+    float currentTime = ofGetElapsedTimef();
     float totalWeight = 0;
     float weight[NUM_SPEAKERS];
     ofVec2f meanPos;
@@ -116,8 +118,6 @@ ofVec2f ofApp::getPathPoint() {
     //  0 1
     //  2 3
     float transform[4] = {0, 0, 0, 0};
-    ofVec2f circlePoint = ofVec2f(cos(phase), sin(phase));
-    ofVec2f transformed;
 
     // first compute the weighted mean point, used as the center of the ellipse
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
@@ -141,10 +141,22 @@ ofVec2f ofApp::getPathPoint() {
         transform[i] /= sqrt(abs(transform[i]));
         //transform[i] /= totalWeight;
     }
+    // the transform matrix is orthogonal, so we can invert just by taking the
+    // transpose. Here we apply the inverse of the transform to the current
+    // ball position so we can calculate the previous phase, increment the
+    // phase, then transform back into the elliptical space
+    ofVec2f origBallPos = ofVec2f(
+            transform[0]*(ballPos.x-meanPos.x) + transform[2] * (ballPos.y-meanPos.y),
+            transform[1]*(ballPos.x-meanPos.x) + transform[3] * (ballPos.y-meanPos.y)
+            );
+    float nextPhase = origBallPos.angleRad(ofVec2f(1, 0)) + 2*PI*ROTATE_FREQ * (currentTime - lastTime);
 
     // apply the transform to a circle
-    transformed.x = transform[0]*circlePoint.x + transform[1]*circlePoint.y;
-    transformed.y = transform[2]*circlePoint.x + transform[3]*circlePoint.y;
+    ballPos = ofVec2f(
+            transform[0]*cos(nextPhase) + transform[1]*sin(nextPhase),
+            transform[2]*cos(nextPhase) + transform[3]*sin(nextPhase)
+            );
+    ballPos += meanPos;
 
     ofCircle(meanPos, 5);
     ofVec2f ax1 = ofVec2f(transform[0], transform[2]);
@@ -152,17 +164,14 @@ ofVec2f ofApp::getPathPoint() {
     ofLine(meanPos, meanPos+ax1);
     ofLine(meanPos, meanPos+ax2);
 
-    return transformed + meanPos;
-    //return ofVec2f(0, 0);
+    lastTime = currentTime;
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
-    float currentTime = ofGetElapsedTimef();
     handleOscMsgs();
     updateSpeakerSpeaking();
-    phase += 2*PI*ROTATE_FREQ * (currentTime - lastTime);
-    lastTime = currentTime;
+    updateBallPos();
 }
 
 void ofApp::DrawSpeakers() {
@@ -180,8 +189,7 @@ void ofApp::draw(){
     ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
     ofScale(1, -1);
     DrawSpeakers();
-    ofVec2f pathPoint = getPathPoint();
-    ofCircle(pathPoint, 10);
+    ofCircle(ballPos, 10);
     ofPopMatrix();
 }
 

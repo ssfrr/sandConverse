@@ -28,7 +28,7 @@ class ofApp : public ofBaseApp{
         void handleOscMsgs();
         void updateSpeakerSpeaking();
         void DrawSpeakers();
-        ofVec2f getPathPoint();
+        void updateBallPos();
         float getSpeakerWeight(int idx);
         void makeEigs(float m[]);
 
@@ -36,7 +36,7 @@ class ofApp : public ofBaseApp{
         ofVec2f speakerPos[NUM_SPEAKERS];
         bool speakerSpeakingNow[NUM_SPEAKERS];
         bool speakerSpeaking[NUM_SPEAKERS][HISTORY_SIZE];
-        float phase;
+        ofVec2f ballPos;
         float lastTime;
         int historyIdx;
 };
