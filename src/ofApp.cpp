@@ -9,8 +9,9 @@ const float ZERO_THRESH = 0.01;
 void ofApp::setup() {
     float speakerRadius = 200;
 
+    ofEnableSmoothing();
     lastEllipseAngle = 0;
-    lastBallPos = ofVec2f(0, 0);
+    lastBallPos = ofVec2f(10000, 10000);
     lastBallPhase = 0;
     ballFbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
     ballFbo.begin();
@@ -202,7 +203,7 @@ void ofApp::update() {
 }
 
 void ofApp::DrawSpeakers() {
-    ofSetColor(200, 200, 200);
+    ofSetColor(200, 200, 200, 100);
 
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
         float circSize = 30.0 * getSpeakerWeight(i);
@@ -217,11 +218,11 @@ void ofApp::draw(){
     ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
     ofScale(1, -1);
     // clear a space to actually draw it next time
-    ofSetColor(20, 20, 20, 50);
-    for(int r = 12; r >= 5; r--) {
+    ofSetColor(20, 20, 20, 10);
+    for(int r = 15; r >= 5; r--) {
         ofCircle(ballPos, r);
     }
-    ofSetColor(200, 200, 200, 255);
+    ofSetColor(237, 176, 135, 255);
     ofCircle(lastBallPos, 9);
     lastBallPos = ballPos;
     ballFbo.end();
@@ -240,10 +241,10 @@ void ofApp::draw(){
     ofLine(meanPos, meanPos+ax1);
     ofLine(meanPos, meanPos+ax2);
 
-    ofDrawBitmapString("meanPos: " + ofToString(meanPos), 200, -200);
-    ofDrawBitmapString("a: " + ofToString(ellipseA), 200, -210);
-    ofDrawBitmapString("b: " + ofToString(ellipseB), 200, -220);
-    ofDrawBitmapString("angle: " + ofToString(ellipseAngle), 200, -230);
+    ofDrawBitmapString("meanPos: " + ofToString(meanPos), 300, -200);
+    ofDrawBitmapString("a: " + ofToString(ellipseA), 300, -210);
+    ofDrawBitmapString("b: " + ofToString(ellipseB), 300, -220);
+    ofDrawBitmapString("angle: " + ofToString(ellipseAngle), 300, -230);
 
     ofPopMatrix();
 }
