@@ -39,4 +39,9 @@ class ofApp : public ofBaseApp{
         ofVec2f ballPos;
         float lastTime;
         int historyIdx;
+        // transform is a 2x2 transformation matrix in the shape of:
+        //  0 1
+        //  2 3
+        float transform[4];
+        ofVec2f meanPos;
 };

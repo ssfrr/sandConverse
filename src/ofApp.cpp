@@ -78,7 +78,11 @@ void ofApp::updateSpeakerSpeaking() {
 void ofApp::makeEigs(float m[]) {
     // assume m[1] == m[2], for a valid covariance matrix. What if they're not?
     if(abs(m[1]/m[0]) < ZERO_THRESH && abs(m[2]/m[3]) < ZERO_THRESH) {
-        // matrix is already diagonalized
+        // matrix is already diagonalized, just
+        m[0] = sqrt(m[0]);
+        m[1] = 0;
+        m[2] = 0;
+        m[3] = sqrt(m[3]);
         return;
     }
 
@@ -89,10 +93,10 @@ void ofApp::makeEigs(float m[]) {
     eigVal1 = left - right;
     eigVal2 = left + right;
     if(abs(eigVal1 - eigVal2) < ZERO_THRESH) {
-        eigVec1.x = eigVal1;
-        eigVec1.y = 0;
-        eigVec2.x = 0;
-        eigVec2.y = eigVal2;
+        m[0] = sqrt(eigVal1);
+        m[1] = 0;
+        m[2] = 0;
+        m[3] = m[0];
         return;
     }
     eigVec1.x = eigVal1 / sqrt(1+pow((m[0]-eigVal1)/m[1], 2));
@@ -100,25 +104,19 @@ void ofApp::makeEigs(float m[]) {
     eigVec2.x = eigVal2 / sqrt(1+pow((m[0]-eigVal2)/m[1], 2));
     eigVec2.y = -(m[0]-eigVal2)/m[1] * eigVec2.x;
 
-    m[0] = eigVec1.x;
-    m[1] = eigVec2.x;
-    m[2] = eigVec1.y;
-    m[3] = eigVec2.y;
+    m[0] = eigVec1.x / sqrt(eigVal1);
+    m[1] = eigVec2.x / sqrt(eigVal2);
+    m[2] = eigVec1.y / sqrt(eigVal1);
+    m[3] = eigVec2.y / sqrt(eigVal2);
 
-    ofDrawBitmapString("eigVal1: " + ofToString(eigVal1), 200, -200);
-    ofDrawBitmapString("eigVal2: " + ofToString(eigVal2), 200, -210);
 }
 
 void ofApp::updateBallPos() {
     float currentTime = ofGetElapsedTimef();
     float totalWeight = 0;
     float weight[NUM_SPEAKERS];
-    ofVec2f meanPos;
-    // transform is a 2x2 transformation matrix in the shape of:
-    //  0 1
-    //  2 3
-    float transform[4] = {0, 0, 0, 0};
 
+    meanPos = ofVec2f(0, 0);
     // first compute the weighted mean point, used as the center of the ellipse
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
         weight[i] = getSpeakerWeight(i);
@@ -127,6 +125,9 @@ void ofApp::updateBallPos() {
     }
     meanPos /= totalWeight;
 
+    for(int i = 0; i < 4; ++i) {
+        transform[i] = 0;
+    }
     // now get the spread transform, using the weighted covariance calculation
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
         ofVec2f diffPos = speakerPos[i] - meanPos;
@@ -137,10 +138,6 @@ void ofApp::updateBallPos() {
         transform[3] += weight[i] * diffPos.y * diffPos.y;
     }
     makeEigs(transform);
-    for(int i = 0; i < 4; ++i) {
-        transform[i] /= sqrt(abs(transform[i]));
-        //transform[i] /= totalWeight;
-    }
     // the transform matrix is orthogonal, so we can invert just by taking the
     // transpose. Here we apply the inverse of the transform to the current
     // ball position so we can calculate the previous phase, increment the
@@ -149,7 +146,14 @@ void ofApp::updateBallPos() {
             transform[0]*(ballPos.x-meanPos.x) + transform[2] * (ballPos.y-meanPos.y),
             transform[1]*(ballPos.x-meanPos.x) + transform[3] * (ballPos.y-meanPos.y)
             );
-    float nextPhase = origBallPos.angleRad(ofVec2f(1, 0)) + 2*PI*ROTATE_FREQ * (currentTime - lastTime);
+    float nextPhase = atan2(origBallPos.y, origBallPos.x) + 2*PI*ROTATE_FREQ * (currentTime - lastTime);
+    if(nextPhase > 2*PI) {
+        nextPhase -= 2*PI;
+    }
+
+    //for(int i = 0; i < 4; ++i) {
+    //    transform[i] /= sqrt(abs(transform[i]));
+    //}
 
     // apply the transform to a circle
     ballPos = ofVec2f(
@@ -157,12 +161,6 @@ void ofApp::updateBallPos() {
             transform[2]*cos(nextPhase) + transform[3]*sin(nextPhase)
             );
     ballPos += meanPos;
-
-    ofCircle(meanPos, 5);
-    ofVec2f ax1 = ofVec2f(transform[0], transform[2]);
-    ofVec2f ax2 = ofVec2f(transform[1], transform[3]);
-    ofLine(meanPos, meanPos+ax1);
-    ofLine(meanPos, meanPos+ax2);
 
     lastTime = currentTime;
 }
@@ -190,6 +188,17 @@ void ofApp::draw(){
     ofScale(1, -1);
     DrawSpeakers();
     ofCircle(ballPos, 10);
+
+    ofCircle(meanPos, 5);
+    ofVec2f ax1 = ofVec2f(transform[0], transform[2]);
+    ofVec2f ax2 = ofVec2f(transform[1], transform[3]);
+    ofLine(meanPos, meanPos+ax1);
+    ofLine(meanPos, meanPos+ax2);
+
+    ofDrawBitmapString("meanPos: " + ofToString(meanPos), 200, -200);
+    ofDrawBitmapString("transform: " + ofToString(transform[0]) + ", " + ofToString(transform[1]), 200, -210);
+    ofDrawBitmapString("           " + ofToString(transform[2]) + ", " + ofToString(transform[3]), 200, -220);
+
     ofPopMatrix();
 }
 
