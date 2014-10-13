@@ -2,7 +2,7 @@
 
 const int OSC_PORT = 12000;
 const float ROTATE_FREQ = 0.2;
-const float MIN_WEIGHT = 0.05;
+const float MIN_WEIGHT = 0.01;
 const float ZERO_THRESH = 0.01;
 
 //--------------------------------------------------------------
@@ -154,6 +154,7 @@ void ofApp::updateBallPos() {
     float currentTime = ofGetElapsedTimef();
     float totalWeight = 0;
     float weight[NUM_SPEAKERS];
+    lastBallPos = ballPos;
 
     meanPos = ofVec2f(0, 0);
     // first compute the weighted mean point, used as the center of the ellipse
@@ -218,13 +219,17 @@ void ofApp::draw(){
     ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
     ofScale(1, -1);
     // clear a space to actually draw it next time
-    ofSetColor(20, 20, 20, 10);
-    for(int r = 15; r >= 5; r--) {
-        ofCircle(ballPos, r);
+    ofPushStyle();
+    ofSetColor(20, 20, 20, 20);
+    for(int w = 10; w >= 2; w--) {
+        ofSetLineWidth(w);
+        ofLine(lastBallPos, ballPos);
     }
-    ofSetColor(237, 176, 135, 255);
-    ofCircle(lastBallPos, 9);
-    lastBallPos = ballPos;
+    ofSetColor(255, 255, 255, 255);
+    ofSetLineWidth(2);
+    ofLine(lastBallPos, ballPos);
+    //ofSetColor(237, 176, 135, 255);
+    ofPopStyle();
     ballFbo.end();
     ofPopMatrix();
 
@@ -233,6 +238,7 @@ void ofApp::draw(){
     ofPushMatrix();
     ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
     ofScale(1, -1);
+
     DrawSpeakers();
 
     ofCircle(meanPos, 5);
@@ -245,6 +251,10 @@ void ofApp::draw(){
     ofDrawBitmapString("a: " + ofToString(ellipseA), 300, -210);
     ofDrawBitmapString("b: " + ofToString(ellipseB), 300, -220);
     ofDrawBitmapString("angle: " + ofToString(ellipseAngle), 300, -230);
+
+    // draw the ball
+    ofSetColor(255, 255, 255, 255);
+    ofCircle(ballPos, 4);
 
     ofPopMatrix();
 }
