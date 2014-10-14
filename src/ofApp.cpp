@@ -2,7 +2,7 @@
 
 const int OSC_PORT = 12000;
 const float ROTATE_FREQ = 0.2;
-const float MIN_WEIGHT = 0.01;
+const float MIN_WEIGHT = 0.02;
 const float ZERO_THRESH = 0.01;
 
 //--------------------------------------------------------------
@@ -23,7 +23,7 @@ void ofApp::setup() {
         }
     }
     for(int i = 0; i < NUM_SPEAKERS; ++i) {
-        float ang = i / (float)NUM_SPEAKERS * 2*PI;
+        float ang = i / (float)NUM_SPEAKERS * 2*PI + PI/4;
         speakerPos[i].x = speakerRadius * cos(ang);
         speakerPos[i].y = speakerRadius * sin(ang);
         speakerSpeakingNow[i] = false;
@@ -44,10 +44,7 @@ float ofApp::getSpeakerWeight(int idx) {
         }
     }
     avgWeight /= HISTORY_SIZE;
-    avgWeight = avgWeight * avgWeight;
-    if(avgWeight < MIN_WEIGHT) {
-        avgWeight = MIN_WEIGHT;
-    }
+    avgWeight = avgWeight * avgWeight * (1 - MIN_WEIGHT) + MIN_WEIGHT;
     return avgWeight;
 }
 
@@ -218,18 +215,20 @@ void ofApp::draw(){
     ofPushMatrix();
     ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
     ofScale(1, -1);
-    // clear a space to actually draw it next time
-    ofPushStyle();
-    ofSetColor(20, 20, 20, 20);
-    for(int w = 10; w >= 2; w--) {
-        ofSetLineWidth(w);
+    if((ballPos - lastBallPos).lengthSquared() < 500) {
+        ofPushStyle();
+        ofSetColor(20, 20, 20, 20);
+        for(int w = 10; w >= 2; w--) {
+            ofSetLineWidth(w);
+            ofLine(lastBallPos, ballPos);
+        }
+        ofSetColor(255, 255, 255, 255);
+        ofSetLineWidth(2);
         ofLine(lastBallPos, ballPos);
+        ofCircle(lastBallPos, 1);
+        //ofSetColor(237, 176, 135, 255);
+        ofPopStyle();
     }
-    ofSetColor(255, 255, 255, 255);
-    ofSetLineWidth(2);
-    ofLine(lastBallPos, ballPos);
-    //ofSetColor(237, 176, 135, 255);
-    ofPopStyle();
     ballFbo.end();
     ofPopMatrix();
 
@@ -239,6 +238,7 @@ void ofApp::draw(){
     ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
     ofScale(1, -1);
 
+    /*
     DrawSpeakers();
 
     ofCircle(meanPos, 5);
@@ -251,6 +251,7 @@ void ofApp::draw(){
     ofDrawBitmapString("a: " + ofToString(ellipseA), 300, -210);
     ofDrawBitmapString("b: " + ofToString(ellipseB), 300, -220);
     ofDrawBitmapString("angle: " + ofToString(ellipseAngle), 300, -230);
+    */
 
     // draw the ball
     ofSetColor(255, 255, 255, 255);

@@ -3,7 +3,7 @@
 #include "ofMain.h"
 #include "ofxOsc.h"
 
-#define NUM_SPEAKERS 5
+#define NUM_SPEAKERS 4
 // 60fps * 30 seconds
 #define HISTORY_SIZE (60 * 30)
 
